@@ -47,7 +47,7 @@ public class MainActivity extends ActionBarActivity {
 	
 	private static int TAKE_PICTURE = 1;
 	private Uri imageUri;
-	ImageView imageView;
+	ImageView imageView, debug_imageView;
 	Button change;
 	private static boolean flag = true;   
     private static boolean isFirst = true;
@@ -74,6 +74,7 @@ public class MainActivity extends ActionBarActivity {
         Button camera = (Button) findViewById(R.id.camera);
         camera.setOnClickListener(cameraListener);
         imageView = (ImageView)findViewById(R.id.image);
+        debug_imageView = (ImageView)findViewById(R.id.debug_image);
         change = (Button) findViewById(R.id.change);
         
     }
@@ -117,6 +118,8 @@ public class MainActivity extends ActionBarActivity {
         // call the parent
         super.onActivityResult(requestCode, resultCode, data);
         
+        imageView.setVisibility(View.VISIBLE);
+        debug_imageView.setVisibility(View.VISIBLE);
         change.setVisibility(View.VISIBLE);
         isFirst = true;
         showPic();
@@ -157,6 +160,8 @@ public class MainActivity extends ActionBarActivity {
         Mat src1 = new Mat();
         Mat src2 = new Mat();
         Mat src3 = new Mat();
+        Mat src4 = new Mat();
+        Mat src5 = new Mat();
         Mat lines = new Mat();
          
         // find the img file from cell-phone
@@ -164,14 +169,19 @@ public class MainActivity extends ActionBarActivity {
         		+"/scanner_test2_pic.jpg");
         
         // create a new bitmap which has the same size as srcBitmap
-        Bitmap tempBm = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Config.RGB_565);
+        Bitmap debug_bm = Bitmap.createBitmap(srcBitmap.getWidth(), srcBitmap.getHeight(), Config.RGB_565);
         Utils.bitmapToMat(srcBitmap, rgbMat);//convert original bitmap to Mat, R G B. 
         
 
         // process the image
         Imgproc.cvtColor(rgbMat, src1, Imgproc.COLOR_RGB2GRAY);//rgbMat to gray processMat 
-        Imgproc.equalizeHist(src1, src2);
-        Imgproc.Canny(src2, src3, 100, 700);
+        Imgproc.medianBlur(src1, src2, 11);
+        Imgproc.equalizeHist(src2, src3);
+        Imgproc.Canny(src3, src4, 60, 150);
+        rgbMat.convertTo(src4, -1, 2.0, -180);
+        Imgproc.cvtColor(src4, src4, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.medianBlur(src4, src4, 11);
+        Imgproc.Canny(src4, src4, 60, 150);
         //Photo.fastNlMeansDenoising(src3, src4, 20, 7, 21);
         //Size size = new Size(10,10);
         //Imgproc.blur(src4, src5, size, new Point(-1,-1) );
@@ -180,10 +190,7 @@ public class MainActivity extends ActionBarActivity {
         // two ways to retrieve points
         // case 1. use mostLeft , mostRight, mostTop, and mostTop to obtain the max size of those four points
         // case 2. use maxSum, minSum, maxDiff, and minDiff to find four points (This may not form a rectangle)
-        int w = rgbMat.width(), h = rgbMat.height(), min_w = 200;
-        double scale = min(10.0, w * 1.0 / min_w);
-        int w_proc = (int) (w * 1.0 / scale), h_proc = (int) (h * 1.0 / scale);
-        Imgproc.HoughLinesP(src3, lines, 1, Math.PI / 180, w_proc / 3, w_proc / 3, 20);
+        Imgproc.HoughLinesP(src4, lines, 3, Math.PI / 180, 100, 50, 80);
         
     	double mostLeft = Double.POSITIVE_INFINITY;
     	double mostRight= Double.NEGATIVE_INFINITY;
@@ -200,6 +207,7 @@ public class MainActivity extends ActionBarActivity {
     			maxDiff = Double.NEGATIVE_INFINITY, 
     			minDiff = Double.POSITIVE_INFINITY;
     	
+    	//ArrayList<Line> all_lines= new ArrayList<Line>();
         for (int x = 0; x < lines.cols(); x++) 
         {
               double[] vec = lines.get(0, x);
@@ -208,6 +216,10 @@ public class MainActivity extends ActionBarActivity {
                      x2 = vec[2],
                      y2 = vec[3];
               
+              Point i = new Point(x1,y1);
+              Point j = new Point(x1,y1);
+              //all_lines.add(new Line(i,j));
+              Core.line(src4, i, j, new Scalar(255,255,255), 5);
             //  find  mostLeft , mostRight, mostTop, and mostTop begin ========================
           	if(x1 < mostLeft){
           		mostLeft = x1;
@@ -286,37 +298,48 @@ public class MainActivity extends ActionBarActivity {
         Point upright = new Point(mostRight,mostTop);
         Point botleft = new Point(mostLeft,mostBot);
         Point botright = new Point(mostRight,mostBot);
-        Core.line(src3, upleft, upleft, new Scalar(255,255,255), 50);
-        Core.line(src3, upright, upright, new Scalar(255,255,255), 50);
-        Core.line(src3, botleft, botleft, new Scalar(255,255,255), 50);
-        Core.line(src3, botright, botright, new Scalar(255,255,255), 50);
+       // Core.line(src3, upleft, upleft, new Scalar(255,255,255), 50);
+       // Core.line(src3, upright, upright, new Scalar(255,255,255), 50);
+       // Core.line(src3, botleft, botleft, new Scalar(255,255,255), 50);
+       // Core.line(src3, botright, botright, new Scalar(255,255,255), 50);
         
         // the following codes is for drawing 4 different corner points(case 2) on src3
-        /*
-        Core.line(src3, leftTop, leftTop, new Scalar(255,255,255), 50);
-        Core.line(src3, rightTop, rightTop, new Scalar(255,255,255), 50);
-        Core.line(src3, leftBot, leftBot, new Scalar(255,255,255), 50);
-        Core.line(src3, rightBot, rightBot, new Scalar(255,255,255), 50);
-        */
+        
+        Core.line(src4, leftTop, leftTop, new Scalar(255,255,255), 50);
+        Core.line(src4, rightTop, rightTop, new Scalar(255,255,255), 50);
+        Core.line(src4, leftBot, leftBot, new Scalar(255,255,255), 50);
+        Core.line(src4, rightBot, rightBot, new Scalar(255,255,255), 50);
+        
         
         
         // The following codes is for image transformation (case 2)
-        /*
-        double dst_width = Math.sqrt(Math.pow((rightBot.x - leftBot.x), 2) + Math.pow((rightBot.y - leftBot.y), 2));
-        double dst_height = Math.sqrt(Math.pow((leftTop.x - leftBot.x), 2) + Math.pow((leftTop.y - leftBot.y), 2));
+        
+        int dst_width = 1000;
+        int dst_height = 600;
+        double pt_width = Math.sqrt(Math.pow((rightBot.x - leftBot.x), 2) + Math.pow((rightBot.y - leftBot.y), 2));
+        double pt_height = Math.sqrt(Math.pow((leftTop.x - leftBot.x), 2) + Math.pow((leftTop.y - leftBot.y), 2));
         Mat src_mat=new Mat(4,1,CvType.CV_32FC2);
         Mat dst_mat=new Mat(4,1,CvType.CV_32FC2);
-        src_mat.put(0,0,leftTop.x,leftTop.y,rightTop.x, rightTop.y, leftBot.x, leftBot.y, rightBot.x, rightBot.y );
-        dst_mat.put(0,0, 0,0, dst_width,0, 0,dst_height, dst_width,dst_height);
+        //src_mat.put(0,0,leftTop.x,leftTop.y,rightTop.x, rightTop.y, leftBot.x, leftBot.y, rightBot.x, rightBot.y );
+        //dst_mat.put(0,0, dst_width,0, 0,dst_height, dst_width,dst_height);
+        if(pt_width > pt_height)
+        	src_mat.put(0,0,leftTop.x,leftTop.y,rightTop.x, rightTop.y, leftBot.x, leftBot.y, rightBot.x, rightBot.y );
+        else
+        	src_mat.put(0,0,leftBot.x,leftBot.y,leftTop.x, leftTop.y, rightBot.x, rightBot.y, rightTop.x, rightTop.y );
+        	
+        dst_mat.put(0,0, 0,0,dst_width,0, 0,dst_height, dst_width,dst_height);
         Mat tempMat = Imgproc.getPerspectiveTransform(src_mat, dst_mat);       
         Mat dstMat=rgbMat.clone();
-        Imgproc.warpPerspective(rgbMat, dstMat, tempMat, new Size(dst_width, dst_height));
-        */
+        Bitmap tempBm = Bitmap.createBitmap((int)dst_width,(int)dst_height, Config.RGB_565);
+        Imgproc.warpPerspective(rgbMat, dstMat, tempMat, new Size(dst_width,dst_height));
         
-        Utils.matToBitmap(rgbMat, tempBm); //convert mat to bitmap  
-        //processBitmap = tempBm;
+        
+        Utils.matToBitmap(dstMat, tempBm); //convert mat to bitmap
+        Utils.matToBitmap(src4, debug_bm);
+        debug_imageView.setImageBitmap(debug_bm);
+        processBitmap = tempBm;
         // cutting the image based on the coordinates (Case 1, only for rectangle size)
-        processBitmap = Bitmap.createBitmap(tempBm, (int)mostLeft, (int)mostTop, (int)(mostRight-mostLeft), (int)(mostBot-mostTop));
+        //processBitmap = Bitmap.createBitmap(tempBm, (int)mostLeft, (int)mostTop, (int)(mostRight-mostLeft), (int)(mostBot-mostTop));
         Log.i("~~~~~~~", "Picture process sucess...");  
     }
 
@@ -327,5 +350,25 @@ public class MainActivity extends ActionBarActivity {
 		else
 			return e;
 	}
+	
+	/*
+	private class Line{
+		Point start;
+		Point end;
+		Line(){
+			start = new Point();
+			end = new Point();
+		}
+		Line(Point X, Point Y){
+			start = X;
+			end = Y;
+		}
+		public Point getStart(){
+			return start;
+		}
+		public Point getEnd(){
+			return end;
+		}
+	}*/
 
 }
