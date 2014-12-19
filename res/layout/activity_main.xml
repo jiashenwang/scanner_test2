@@ -27,6 +27,24 @@
 		    android:visibility="gone"
 		    />
 		<ImageView
+		    android:id="@+id/debug_image1"
+		    android:layout_width="wrap_content" 
+		    android:layout_height="wrap_content"
+		    android:visibility="gone"
+		    />
+		<ImageView
+		    android:id="@+id/debug_image2"
+		    android:layout_width="wrap_content" 
+		    android:layout_height="wrap_content"
+		    android:visibility="gone"
+		    />
+		<ImageView
+		    android:id="@+id/debug_image3"
+		    android:layout_width="wrap_content" 
+		    android:layout_height="wrap_content"
+		    android:visibility="gone"
+		    />
+		<ImageView
 		    android:id="@+id/debug_image"
 		    android:layout_width="wrap_content" 
 		    android:layout_height="wrap_content"
